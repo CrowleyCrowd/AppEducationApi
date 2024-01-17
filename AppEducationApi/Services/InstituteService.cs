@@ -1,31 +1,51 @@
 ﻿using AppEducationApi.Data;
 using AppEducationApi.Models;
+using Microsoft.AspNetCore.Mvc;
+using System.IO.Compression;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AppEducationApi.Services
 {
-	public class InstituteService
+	public class InstituteService: ControllerBase
 	{
-		private readonly HttpClient _httpClient;
 		private readonly AppDbContext _dbContext;
 
-		public InstituteService(HttpClient httpClient, AppDbContext dbContext)
+		public InstituteService(AppDbContext dbContext)
 		{
-			_httpClient = httpClient;
 			_dbContext = dbContext;
 		}
 
 		public async Task<List<InstitutionResults>> GetInstitutionResultsAsync()
 		{
-			var response = await _httpClient.GetAsync($"https://www.gob.ec/api/v1/instituciones");
+			using HttpClient client = new HttpClient();
+			try {
 
-			response.EnsureSuccessStatusCode();
+				string apiUrl = $"https://www.gob.ec/api/v1/instituciones";
 
-			var content = await response.Content.ReadAsStringAsync();
-			var institutionJson = JsonSerializer.Deserialize<InstitutionResults>(content);
-			var results = institutionJson.Results;
+				HttpResponseMessage response = await client.GetAsync(apiUrl);
 
-			return results;
+				if (response.IsSuccessStatusCode)
+				{
+					var responseBody = await response.Content.ReadAsStringAsync();
+					List<InstitutionResults> result = JsonSerializer.Deserialize<List<InstitutionResults>>(responseBody, new JsonSerializerOptions
+					{
+						PropertyNameCaseInsensitive = true,
+						WriteIndented = true,
+						Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+					});
+					return result;
+				}
+				else
+				{
+					throw new Exception("Error en la solicitud. Código de estado: " + response.StatusCode);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw;
+			}
 		}
 
 		public async Task SaveInstitutionAsync(Institution institution)
