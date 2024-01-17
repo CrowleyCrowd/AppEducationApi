@@ -41,39 +41,33 @@ namespace AppEducationApi.Controllers
 				return NotFound();
 			}
 
-			List<Institution> institutions = new();
+			var newInstitution = (from i in institution
+								  join idb in _dbContext.Institutions.ToList() on i.InstitucionId equals idb.InstitucionId into lidb
+								  from idb in lidb.DefaultIfEmpty()
+								  where idb == null || i.InstitucionId != idb.InstitucionId
+								  select new Institution
+								  {
+									  InstitucionId = i.InstitucionId,
+									  Institucion = i.Institucion,
+									  Siglas = i.Siglas,
+									  Logo = i.Logo,
+									  Url = i.Url,
+									  Website = i.Website,
+									  Tipo = i.Tipo,
+									  Descripcion = i.Descripcion,
+									  Sector = i.Sector,
+									  Modificado = i.Modificado,
+									  Publicado = i.Publicado
+								  });
+			await _dbContext.Institutions.AddRangeAsync(newInstitution);
 
-			foreach (var item in institution)
-			{
-				var institutionCheck = _dbContext.Institutions.Where(x => x.InstitucionId == item.InstitucionId);
-				if (!institutionCheck.Any())
-				{
-					var institutionItem = new Institution
-					{
-						InstitucionId = item.InstitucionId,
-						Institucion = item.Institucion,
-						Siglas = item.Siglas,
-						Logo = item.Logo,
-						Url = item.Url,
-						Website = item.Website,
-						Tipo = item.Tipo,
-						Descripcion = item.Descripcion,
-						Sector = item.Sector,
-						Modificado = item.Modificado,
-						Publicado = item.Publicado
-					};
-					_dbContext.Institutions.Add(institutionItem);
-					institutions.Add(institutionItem);
-				}
-				//await _instituteService.SaveInstitutionAsync(institutionItem);
-			}
 			int result = await _dbContext.SaveChangesAsync();
 			if (result == 0)
 			{
-				return BadRequest();
+				return NotFound();
 			}
 
-			return institutions;
+			return newInstitution.ToList();
 		}
 	}
 }
