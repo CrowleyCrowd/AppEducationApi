@@ -36,7 +36,5 @@ namespace AppEducationApi.Models
 
 		[JsonPropertyName("publicado")]
 		public string Publicado { get; set; }
-
-		public List<InstitutionResults> Results { get; set; }
 	}
 }
